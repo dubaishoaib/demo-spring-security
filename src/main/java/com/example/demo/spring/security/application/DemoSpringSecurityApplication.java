@@ -6,8 +6,9 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {
-		"com.example.demo.spring.security.student"
-		, "com.example.demo.spring.security.config"
+		 "com.example.demo.spring.security.controller",
+		 "com.example.demo.spring.security.student",
+		 "com.example.demo.spring.security.config"
 })
 public class DemoSpringSecurityApplication {
 

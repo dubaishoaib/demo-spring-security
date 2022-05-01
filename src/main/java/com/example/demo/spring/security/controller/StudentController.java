@@ -1,5 +1,6 @@
-package com.example.demo.spring.security.student;
+package com.example.demo.spring.security.controller;
 
+import com.example.demo.spring.security.student.Student;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +21,7 @@ public class StudentController {
     );
     @GetMapping(path = "/{studentId}")
     public Student getStudent(@PathVariable("studentId") Integer studentId) {
+        System.out.println("getStudent");
         return STUDENTS.stream().filter(student -> studentId.equals(student.getStudentId()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Studnet " + studentId + " does not exists"));
