@@ -9,6 +9,7 @@ For further reference, please consider the following sections:
 * [Spring Web](https://docs.spring.io/spring-boot/docs/2.6.7/reference/htmlsingle/#boot-features-developing-web-applications)
 * [Servlet Authentication Architecture](https://docs.spring.io/spring-security/reference/servlet/authentication/architecture.html)
 * [Spring Security In-Memory Authentication](https://www.appsdeveloperblog.com/spring-security-in-memory-authentication/)
+* [A Guide to CSRF Protection in Spring Security](https://www.baeldung.com/spring-security-csrf)
 ### Guides
 The following guides illustrate how to use some features concretely:
 
