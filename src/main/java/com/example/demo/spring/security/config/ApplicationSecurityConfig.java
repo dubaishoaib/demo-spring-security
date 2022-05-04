@@ -1,29 +1,23 @@
 package com.example.demo.spring.security.config;
 
-import org.checkerframework.checker.units.qual.A;
+import com.example.demo.spring.security.jwt.JwtConfig;
+import com.example.demo.spring.security.jwt.JwtTokenVerifier;
+import com.example.demo.spring.security.jwt.JwtUsernameAndPasswordAuthenticationFilter;
+import com.example.demo.spring.security.service.ApplicationUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.util.matcher.AndRequestMatcher;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import java.util.concurrent.TimeUnit;
+import javax.crypto.SecretKey;
 
-import static com.example.demo.spring.security.config.ApplicationUserPermission.COURSE_WRITE;
 import static com.example.demo.spring.security.config.ApplicationUserRole.*;
 
 @Configuration
@@ -32,10 +26,19 @@ import static com.example.demo.spring.security.config.ApplicationUserRole.*;
 public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationUserService applicationUserService;
+    private final JwtConfig jwtConfig;
+    private final SecretKey secretKey;
 
     @Autowired
-    ApplicationSecurityConfig(PasswordEncoder passwordEncoder) {
+    ApplicationSecurityConfig(PasswordEncoder passwordEncoder,
+                              ApplicationUserService applicationUserService,
+                              JwtConfig jwtConfig,
+                              SecretKey secretKey) {
         this.passwordEncoder = passwordEncoder;
+        this.applicationUserService = applicationUserService;
+        this.jwtConfig = jwtConfig;
+        this.secretKey = secretKey;
     }
 
     @Override
@@ -46,6 +49,21 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                  */
                 //.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .csrf().disable()
+                /**
+                 * Doing this for JWT configuration
+                 * 1.  Setting session management stateless policy
+                 */
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .addFilter(new JwtUsernameAndPasswordAuthenticationFilter(authenticationManager(), jwtConfig, secretKey))
+                /**
+                 * Above part is about sending the JWS to the requester
+                 * Now we verify the JWT and authenticate the context
+                 */
+                .addFilterAfter(new JwtTokenVerifier(jwtConfig, secretKey), JwtUsernameAndPasswordAuthenticationFilter.class)
+                /**
+                 * JWT ======= END
+                 */
                 .authorizeRequests()
                 .antMatchers("/", "/test", "index", "/css/*", "/js/*").permitAll()
                 .antMatchers("/api/**").hasRole(STUDENT.name())
@@ -59,12 +77,17 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 */
                 .anyRequest()
                 .authenticated()
-                .and()
                 /**
                  * Disabling Basic authentication
                  * moving to form base authentication.
                  */
                 //.httpBasic()
+                /**
+                 * Now moving from formbase auth to JWT Auth.
+                 * So blocking comitting below part..
+                 */
+                /*
+                .and()
                 .formLogin()// Now form base login is enabled
                     .loginPage("/login").permitAll() // setting custom login path and allowing all to access login page
                     .defaultSuccessUrl("/courses", true)
@@ -83,7 +106,21 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                     .invalidateHttpSession(true)
                     .deleteCookies("JSESSIONID", "remember-me")
                     .logoutSuccessUrl("/login")
+                 */
                  ;
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(daoAuthenticationProvider());
+    }
+
+    @Bean
+    public DaoAuthenticationProvider daoAuthenticationProvider(){
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setPasswordEncoder(passwordEncoder);
+        provider.setUserDetailsService(applicationUserService);
+        return provider;
     }
 
 /*    @Autowired
@@ -93,6 +130,14 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .passwordEncoder(passwordEncoder);
     }*/
 
+
+    /**
+     *
+     * The following userDetailsService is not required
+     * as now we have implemented our own Authentication Provider.
+     * So commingting this part.
+     */
+    /*
     @Bean
     @Override
     protected UserDetailsService userDetailsService() {
@@ -122,4 +167,5 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 
         return new InMemoryUserDetailsManager(annasmith, linda, tom);
     }
+     */
 }
